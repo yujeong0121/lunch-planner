@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Claude AI가 네이버를 실시간 검색해서 주변 실제 맛집을 추천해줘요" />
+  <title>🍱 오늘 점심 어디가?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:#f5f4f0; --sur:#fff; --sur2:#f0efe9;
+      --bd:rgba(0,0,0,0.09); --bd2:rgba(0,0,0,0.18);
+      --tx:#1a1a18; --tx2:#6b6b65; --tx3:#a8a8a0;
+      --in-bg:#e6f1fb; --in-bd:#85b7eb; --in-tx:#0c447c;
+      --wn-bg:#faeeda; --wn-bd:#ef9f27; --wn-tx:#633806;
+      --ok-bg:#eaf3de; --ok-bd:#97c459; --ok-tx:#3b6d11;
+      --ac:#E8593C; --r:14px; --rs:9px;
+    }
+    @media(prefers-color-scheme:dark){:root{
+      --bg:#1c1c1a;--sur:#272725;--sur2:#313130;
+      --bd:rgba(255,255,255,0.08);--bd2:rgba(255,255,255,0.18);
+      --tx:#e8e7e0;--tx2:#9a9990;--tx3:#5c5c58;
+      --in-bg:#042c53;--in-bd:#185fa5;--in-tx:#b5d4f4;
+      --wn-bg:#412402;--wn-bd:#ba7517;--wn-tx:#fac775;
+      --ok-bg:#173404;--ok-bd:#3b6d11;--ok-tx:#c0dd97;
+    }}
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;padding-bottom:80px;}
+
+    /* Hero */
+    .hero{background:var(--sur);border-bottom:0.5px solid var(--bd);text-align:center;padding:40px 20px 28px;}
+    .hero-icon{font-size:48px;display:block;margin-bottom:10px;}
+    .hero h1{font-size:26px;font-weight:700;letter-spacing:-0.8px;}
+    .hero-sub{font-size:13px;color:var(--tx2);margin-top:6px;}
+    .ai-badge{display:inline-flex;align-items:center;gap:5px;margin-top:10px;padding:4px 12px;border-radius:99px;background:var(--ok-bg);border:0.5px solid var(--ok-bd);font-size:11px;font-weight:700;color:var(--ok-tx);}
+
+    .wrap{max-width:560px;margin:0 auto;padding:20px 16px;}
+
+    /* Cards */
+    .card{background:var(--sur);border:0.5px solid var(--bd);border-radius:var(--r);padding:16px 18px;margin-bottom:12px;}
+    .clabel{font-size:11px;font-weight:700;letter-spacing:0.6px;color:var(--tx3);text-transform:uppercase;margin-bottom:10px;}
+
+    /* API key card */
+    .api-hdr{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;}
+    .pill{padding:2px 9px;border-radius:99px;font-size:10px;font-weight:700;}
+    .pill.ok{background:var(--ok-bg);color:var(--ok-tx);border:0.5px solid var(--ok-bd);}
+    .pill.no{background:var(--wn-bg);color:var(--wn-tx);border:0.5px solid var(--wn-bd);}
+    .chev{color:var(--tx3);font-size:11px;margin-left:auto;transition:transform .2s;}
+    .api-body{margin-top:14px;}
+    .api-info{font-size:12px;color:var(--tx2);line-height:1.7;margin-bottom:10px;}
+    .api-info a{color:var(--ac);text-decoration:none;font-weight:600;}
+    .api-info a:hover{text-decoration:underline;}
+    .api-row{display:flex;gap:7px;}
+    .api-row input{flex:1;padding:9px 10px;border-radius:var(--rs);border:0.5px solid var(--bd2);background:var(--sur2);color:var(--tx);font-size:12px;font-family:monospace;outline:none;transition:border .15s;}
+    .api-row input:focus{border-color:var(--ac);}
+    .api-row input::placeholder{color:var(--tx3);}
+    .api-save-btn{padding:9px 16px;border-radius:var(--rs);border:none;background:var(--ac);color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
+    .api-save-btn:hover{opacity:.88;}
+    .api-saved-info{margin-top:8px;font-size:11px;color:var(--ok-tx);display:none;}
+
+    /* Location */
+    .loc-row{display:flex;gap:7px;}
+    .txt{flex:1;padding:9px 12px;border-radius:var(--rs);border:0.5px solid var(--bd2);background:var(--sur2);color:var(--tx);font-size:13px;font-family:inherit;outline:none;transition:border .15s;}
+    .txt:focus{border-color:var(--ac);background:var(--sur);}
+    .txt::placeholder{color:var(--tx3);}
+    .sbtn{padding:9px 14px;border-radius:var(--rs);border:0.5px solid var(--bd2);background:var(--sur);color:var(--tx);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;transition:background .15s;}
+    .sbtn:hover{background:var(--sur2);}
+    .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px;}
+    .chip{display:flex;align-items:center;gap:4px;padding:4px 10px 4px 8px;border-radius:99px;border:0.5px solid var(--bd);background:var(--sur2);font-size:12px;color:var(--tx2);cursor:pointer;transition:all .15s;}
+    .chip:hover{border-color:var(--bd2);color:var(--tx);}
+    .chip.on{background:var(--in-bg);border-color:var(--in-bd);color:var(--in-tx);font-weight:600;}
+    .chip-x{background:none;border:none;cursor:pointer;color:inherit;font-size:11px;opacity:.5;padding:0;line-height:1;}
+    .chip-x:hover{opacity:1;}
+    .no-loc{font-size:12px;color:var(--tx3);}
+
+    /* Cat */
+    .cg{display:flex;flex-wrap:wrap;gap:6px;}
+    .cbtn{padding:7px 14px;border-radius:99px;border:0.5px solid var(--bd2);background:var(--sur2);color:var(--tx2);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;font-family:inherit;}
+    .cbtn:hover{border-color:var(--ac);color:var(--tx);}
+    .cbtn.on{background:var(--in-bg);border-color:var(--in-bd);color:var(--in-tx);font-weight:700;}
+
+    /* Slider */
+    .slr{display:flex;align-items:center;gap:12px;}
+    .slr label{font-size:13px;color:var(--tx2);white-space:nowrap;}
+    .slr input[type=range]{flex:1;-webkit-appearance:none;height:4px;background:var(--sur2);border-radius:2px;outline:none;border:0.5px solid var(--bd);}
+    .slr input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--ac);cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+    .slv{font-size:14px;font-weight:700;min-width:44px;text-align:right;}
+
+    /* Budget */
+    .bdr{display:flex;align-items:center;gap:12px;}
+    .bdr label{font-size:13px;color:var(--tx2);white-space:nowrap;}
+    .bdw{flex:1;position:relative;}
+    .bdw input{width:100%;padding:9px 30px 9px 12px;border-radius:var(--rs);border:0.5px solid var(--bd2);background:var(--sur2);color:var(--tx);font-size:14px;font-weight:600;font-family:inherit;outline:none;text-align:right;transition:border .15s;}
+    .bdw input:focus{border-color:var(--ac);background:var(--sur);}
+    .bdu{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:13px;color:var(--tx3);pointer-events:none;}
+    .bdh{font-size:11px;color:var(--tx3);margin-top:6px;}
+
+    /* Go button */
+    .go-btn{width:100%;padding:17px;background:var(--ac);color:#fff;border:none;border-radius:var(--r);font-size:16px;font-weight:700;cursor:pointer;letter-spacing:-0.3px;font-family:inherit;transition:transform .1s,opacity .15s;box-shadow:0 2px 20px rgba(232,89,60,.35);margin-top:4px;}
+    .go-btn:hover{opacity:.9;transform:translateY(-1px);}
+    .go-btn:active{transform:scale(.98);}
+    .go-btn:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;}
+
+    /* Roulette */
+    .rlw{display:none;flex-direction:column;align-items:center;padding:28px 0 8px;}
+    .rlw.on{display:flex;}
+    .rlp{width:0;height:0;margin-bottom:-5px;border-left:12px solid transparent;border-right:12px solid transparent;border-top:22px solid var(--tx);}
+    #rlc{border-radius:50%;display:block;box-shadow:0 6px 32px rgba(0,0,0,.18);}
+
+    /* Loading */
+    .ldc{display:none;background:var(--sur);border:0.5px solid var(--bd);border-radius:var(--r);padding:24px 18px;margin-top:14px;text-align:center;}
+    .ldc.on{display:block;}
+    .ldr{width:36px;height:36px;border:3px solid var(--bd2);border-top-color:var(--ac);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .ldt{font-size:14px;font-weight:600;margin-bottom:4px;}
+    .lds{font-size:12px;color:var(--tx2);line-height:1.6;}
+
+    /* Result */
+    .rsc{display:none;background:var(--sur);border:0.5px solid var(--bd);border-radius:var(--r);padding:20px;margin-top:14px;animation:up .35s ease;}
+    .rsc.on{display:block;}
+    @keyframes up{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+    .rst{display:flex;align-items:flex-start;gap:14px;}
+    .rsic{width:60px;height:60px;border-radius:14px;background:var(--in-bg);display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0;border:0.5px solid var(--in-bd);}
+    .rsnm{font-size:20px;font-weight:700;line-height:1.2;}
+    .rsmt{font-size:12px;color:var(--tx2);margin-top:4px;}
+    .lb2{display:inline-flex;align-items:center;gap:4px;margin-top:8px;padding:3px 9px;border-radius:99px;background:var(--ok-bg);border:0.5px solid var(--ok-bd);font-size:10px;font-weight:700;color:var(--ok-tx);}
+    .ld{width:6px;height:6px;border-radius:50%;background:var(--ok-tx);animation:pu 1.5s ease infinite;}
+    @keyframes pu{0%,100%{opacity:1;}50%{opacity:.4;}}
+    .tags{display:flex;gap:5px;margin-top:12px;flex-wrap:wrap;}
+    .tag{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;background:var(--sur2);color:var(--tx2);border:0.5px solid var(--bd);}
+    .tag.hl{background:var(--wn-bg);color:var(--wn-tx);border-color:var(--wn-bd);}
+    .dv{height:0.5px;background:var(--bd);margin:14px 0;}
+    .ir{display:flex;justify-content:space-between;align-items:flex-start;font-size:13px;margin-bottom:7px;}
+    .ir .lb{color:var(--tx2);flex-shrink:0;margin-right:8px;}
+    .ir .vl{font-weight:600;text-align:right;}
+    .rvh{font-size:12px;font-weight:700;color:var(--tx2);margin-bottom:8px;display:flex;align-items:center;gap:6px;}
+    .nb{padding:2px 7px;border-radius:4px;background:#03C75A;color:#fff;font-size:10px;font-weight:700;}
+    .rvi{background:var(--sur2);border:0.5px solid var(--bd);border-radius:var(--rs);padding:10px 12px;margin-bottom:6px;}
+    .rvt{display:flex;align-items:center;gap:7px;margin-bottom:4px;}
+    .rvu{font-size:11px;font-weight:700;}
+    .rvs{font-size:11px;color:#E8593C;letter-spacing:-1px;}
+    .rvd{margin-left:auto;font-size:11px;color:var(--tx3);}
+    .rvb{font-size:12px;color:var(--tx2);line-height:1.65;}
+    .wyc{background:var(--sur2);border:0.5px solid var(--bd);border-left:3px solid var(--ac);border-radius:var(--rs);padding:12px 14px;margin-bottom:8px;}
+    .wyt{font-size:11px;font-weight:700;color:var(--ac);margin-bottom:5px;}
+    .wyb{font-size:13px;color:var(--tx2);line-height:1.65;}
+    .ag{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+    .ab{padding:12px;border-radius:var(--rs);border:0.5px solid var(--bd2);background:var(--sur);color:var(--tx);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s;font-family:inherit;}
+    .ab:hover{background:var(--sur2);}
+    .ab.p{background:var(--tx);color:var(--sur);border-color:transparent;}
+    .ab.p:hover{opacity:.85;}
+    .rb{width:100%;margin-top:8px;padding:10px;border:0.5px dashed var(--bd2);background:transparent;border-radius:var(--rs);color:var(--tx2);font-size:13px;cursor:pointer;font-family:inherit;transition:background .15s;}
+    .rb:hover{background:var(--sur2);}
+
+    /* Error */
+    .ec{display:none;background:#fff2f0;border:0.5px solid #f0a090;border-radius:var(--rs);padding:14px 16px;margin-top:12px;font-size:13px;color:#8b2e15;line-height:1.7;}
+    .ec.on{display:block;}
+    @media(prefers-color-scheme:dark){.ec{background:#2a1010;color:#f4a090;border-color:#6b2020;}}
+
+    /* Toast */
+    .tst{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--tx);color:var(--sur);padding:10px 22px;border-radius:99px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;z-index:999;font-weight:500;}
+    .tst.on{opacity:1;}
+
+    .footer{text-align:center;padding:32px 16px 0;font-size:12px;color:var(--tx3);line-height:1.9;}
+    .footer a{color:var(--tx3);}
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <span class="hero-icon">🍱</span>
+  <h1>오늘 점심 어디가?</h1>
+  <p class="hero-sub" id="hSub">위치와 조건을 설정하고 AI 추천을 받아보세요</p>
+  <div class="ai-badge">🔍 네이버 실시간 검색 · Claude AI 추천</div>
+</div>
+
+<div class="wrap">
+
+  <!-- API Key -->
+  <div class="card" id="apiCard">
+    <div class="api-hdr" onclick="toggleApi()">
+      <span class="clabel" style="margin-bottom:0;">🔑 Anthropic API 키</span>
+      <span id="apiPill" class="pill no">필요</span>
+      <span id="apiChev" class="chev">▼</span>
+    </div>
+    <div class="api-body" id="apiBody" style="display:none;">
+      <div class="api-info">
+        AI 추천을 사용하려면 본인의 <a href="https://console.anthropic.com" target="_blank">Anthropic API 키</a>가 필요해요.<br>
+        키는 <strong>이 기기 브라우저에만 저장</strong>되며, 서버로 전송되지 않아요.
+      </div>
+      <div class="api-row">
+        <input type="password" id="apiIn" placeholder="sk-ant-api03-..." autocomplete="off" />
+        <button class="api-save-btn" onclick="saveApiKey()">저장</button>
+      </div>
+      <div class="api-saved-info" id="apiSavedInfo">✅ API 키가 저장됐어요. 이 기기에서 계속 사용할 수 있어요.</div>
+    </div>
+  </div>
+
+  <!-- 위치 -->
+  <div class="card">
+    <div class="clabel">출발 위치</div>
+    <div class="loc-row">
+      <input class="txt" type="text" id="locIn" placeholder="예) 서울 서초구 서초대로 40길 83" />
+      <button class="sbtn" onclick="saveLoc()">📌 저장</button>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <!-- 카테고리 -->
+  <div class="card">
+    <div class="clabel">음식 종류</div>
+    <div class="cg" id="cg">
+      <button class="cbtn on" data-c="상관없음">🍽 상관없음</button>
+      <button class="cbtn" data-c="한식">🍚 한식</button>
+      <button class="cbtn" data-c="중식">🥢 중식</button>
+      <button class="cbtn" data-c="일식">🍣 일식</button>
+      <button class="cbtn" data-c="양식">🍝 양식</button>
+      <button class="cbtn" data-c="분식">🌶 분식</button>
+      <button class="cbtn" data-c="고기">🥩 고기</button>
+      <button class="cbtn" data-c="베트남">🍜 베트남</button>
+    </div>
+  </div>
+
+  <!-- 도보 -->
+  <div class="card">
+    <div class="clabel">도보 거리</div>
+    <div class="slr">
+      <label>최대</label>
+      <input type="range" id="dsl" min="3" max="30" step="1" value="15" />
+      <span class="slv" id="dsv">15분</span>
+    </div>
+  </div>
+
+  <!-- 예산 -->
+  <div class="card">
+    <div class="clabel">1인 예산</div>
+    <div class="bdr">
+      <label>최대</label>
+      <div class="bdw">
+        <input type="number" id="bdi" min="1000" max="200000" step="1000" value="20000" />
+        <span class="bdu">원</span>
+      </div>
+    </div>
+    <div class="bdh" id="bdh">최대 2만원 이하 식당을 추천해요</div>
+  </div>
+
+  <button class="go-btn" id="goBtn" onclick="go()">🎲 AI 점심 추천받기</button>
+
+  <!-- 룰렛 -->
+  <div class="rlw" id="rlw">
+    <div class="rlp"></div>
+    <canvas id="rlc" width="220" height="220"></canvas>
+  </div>
+
+  <!-- 로딩 -->
+  <div class="ldc" id="ldc">
+    <div class="ldr"></div>
+    <div class="ldt">네이버에서 실제 맛집 검색 중이에요</div>
+    <div class="lds" id="lds">위치 주변 식당 정보를 수집하고 있어요...</div>
+  </div>
+
+  <!-- 에러 -->
+  <div class="ec" id="ec"></div>
+
+  <!-- 결과 -->
+  <div class="rsc" id="rsc">
+    <div class="rst">
+      <div class="rsic" id="rsic">🍽</div>
+      <div>
+        <div class="rsnm" id="rsnm">-</div>
+        <div class="rsmt" id="rsmt">-</div>
+        <div class="lb2"><span class="ld"></span>네이버 실시간 검색</div>
+      </div>
+    </div>
+    <div class="tags" id="tags"></div>
+    <div class="dv"></div>
+    <div class="ir"><span class="lb">출발지</span><span class="vl" id="rFrom">-</span></div>
+    <div class="ir"><span class="lb">도보 거리</span><span class="vl" id="rDist">-</span></div>
+    <div class="ir"><span class="lb">예상 가격</span><span class="vl" id="rPrice">-</span></div>
+    <div class="ir"><span class="lb">영업시간</span><span class="vl" id="rHours">-</span></div>
+    <div class="ir"><span class="lb">주소</span><span class="vl" id="rAddr" style="font-size:12px;">-</span></div>
+    <div class="dv"></div>
+    <div class="rvh"><span class="nb">N</span> 네이버 리뷰 <span style="font-weight:400;color:var(--tx3);font-size:11px;">최신순 10개</span></div>
+    <div id="rvArea"></div>
+    <div class="ag">
+      <button class="ab p" onclick="openMap()">🗺 길 찾기</button>
+      <button class="ab" onclick="shareIt()">💬 카톡 공유</button>
+    </div>
+    <button class="rb" onclick="go()">다른 식당 추천받기 →</button>
+  </div>
+
+  <div class="footer">
+    Claude AI가 네이버를 실시간 검색해서 실제 맛집을 추천해요<br>
+    API 키는 본인 브라우저에만 저장되며 외부로 전송되지 않아요<br>
+    <a href="https://console.anthropic.com" target="_blank">API 키 발급하기</a>
+  </div>
+</div>
+
+<div class="tst" id="tst"></div>
+
+<script>
+const EM={"한식":"🍚","중식":"🥢","일식":"🍣","양식":"🍝","분식":"🌶","고기":"🥩","베트남":"🍜","상관없음":"🍽"};
+const CL=['#E8593C','#3B8BD4','#639922','#BA7517','#533AB7','#D4537E','#0F6E56','#D85A30'];
+const LM=["네이버에서 주변 맛집을 검색하고 있어요...","식당 정보와 리뷰를 분석하고 있어요...","조건에 맞는 최적 식당을 고르고 있어요...","네이버 리뷰를 요약하고 있어요..."];
+
+let cat="상관없음",dist=15,bud=20000,loc="",locs=[],aIdx=-1,apiKey="",busy=false,aid=null,ang=0,res=null;
+
+/* ── API Key ── */
+function saveApiKey(){
+  const v=g('apiIn').value.trim();
+  if(!v.startsWith('sk-ant-')){toast('올바른 API 키를 입력해주세요 (sk-ant-로 시작)');return;}
+  apiKey=v;
+  ls('apiKey',v);
+  updApiUI();
+  g('apiSavedInfo').style.display='block';
+  setTimeout(()=>{
+    g('apiBody').style.display='none';
+    g('apiChev').textContent='▼';
+  },1200);
+  toast('✅ API 키가 저장됐어요');
+}
+function toggleApi(){
+  const open=g('apiBody').style.display==='none';
+  g('apiBody').style.display=open?'block':'none';
+  g('apiChev').textContent=open?'▲':'▼';
+  if(open&&apiKey) g('apiIn').value=apiKey;
+}
+function updApiUI(){
+  const p=g('apiPill');
+  if(apiKey){p.textContent='저장됨';p.className='pill ok';}
+  else{p.textContent='필요';p.className='pill no';}
+}
+(function(){
+  try{const v=localStorage.getItem('lunchApiKey_gh');if(v)apiKey=v;}catch(e){}
+  updApiUI();
+  if(!apiKey){g('apiBody').style.display='block';g('apiChev').textContent='▲';}
+})();
+
+/* ── Locations ── */
+(function(){
+  try{const v=localStorage.getItem('lunchLocs_gh');if(v)locs=JSON.parse(v);}catch(e){}
+  try{
+    const last=localStorage.getItem('lunchLastLoc_gh');
+    if(last){loc=last;g('locIn').value=last;const i=locs.indexOf(last);if(i>=0)aIdx=i;}
+  }catch(e){}
+  renderChips();
+})();
+function pLocs(){ls('lunchLocs_gh',JSON.stringify(locs));}
+function pLast(v){ls('lunchLastLoc_gh',v);}
+function ls(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+
+function saveLoc(){
+  const v=g('locIn').value.trim();
+  if(!v){toast('위치를 입력해주세요');return;}
+  if(locs.includes(v)){aLoc(locs.indexOf(v));toast('이미 저장됐어요');return;}
+  if(locs.length>=5)locs.shift();
+  locs.push(v);pLocs();loc=v;aIdx=locs.indexOf(v);pLast(v);
+  updHero();renderChips();toast('📌 저장됐어요');
+}
+function aLoc(i){aIdx=i;loc=locs[i];g('locIn').value=loc;pLast(loc);updHero();renderChips();}
+function delLoc(i){locs.splice(i,1);if(aIdx===i)aIdx=-1;else if(aIdx>i)aIdx--;pLocs();renderChips();}
+function renderChips(){
+  const el=g('chips');
+  if(!locs.length){el.innerHTML='<span class="no-loc">저장된 위치가 없어요</span>';return;}
+  el.innerHTML=locs.map((l,i)=>
+    `<div class="chip${i===aIdx?' on':''}" onclick="aLoc(${i})">📍 ${e(l)}<button class="chip-x" onclick="event.stopPropagation();delLoc(${i})">✕</button></div>`
+  ).join('');
+}
+function updHero(){
+  g('hSub').textContent=loc?loc+' 기준 · 네이버 AI 실시간 추천':'위치와 조건을 설정하고 AI 추천을 받아보세요';
+}
+g('locIn').addEventListener('input',ev=>{loc=ev.target.value.trim();aIdx=-1;pLast(loc);renderChips();updHero();});
+
+/* ── Category ── */
+g('cg').addEventListener('click',ev=>{
+  const b=ev.target.closest('.cbtn');if(!b)return;
+  document.querySelectorAll('.cbtn').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');cat=b.dataset.c;
+});
+
+/* ── Sliders ── */
+g('dsl').addEventListener('input',ev=>{dist=+ev.target.value;g('dsv').textContent=dist+'분';});
+g('bdi').addEventListener('input',ev=>{
+  const n=parseInt(ev.target.value,10);bud=isNaN(n)?0:n;
+  g('bdh').textContent=bud>0?'최대 '+fw(bud)+' 이하 식당을 추천해요':'예산을 입력해주세요';
+});
+function fw(v){if(v<10000)return Math.round(v/1000)+'천원';const m=Math.floor(v/10000),c=Math.round((v%10000)/1000);return c?m+'만 '+c+'천원':m+'만원';}
+
+/* ── Roulette ── */
+function drawRl(a){
+  const cv=g('rlc'),ctx=cv.getContext('2d'),cx=110,cy=110,r=106,sl=(Math.PI*2)/8;
+  ctx.clearRect(0,0,220,220);
+  const lb=cat==='상관없음'?['한식','중식','일식','양식','분식','고기','베트남','기타']:[cat,'',cat,'',cat,'',cat,''];
+  for(let i=0;i<8;i++){
+    const s=a+i*sl,en=s+sl;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,s,en);ctx.closePath();
+    ctx.fillStyle=CL[i];ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+    if(lb[i]){ctx.save();ctx.translate(cx,cy);ctx.rotate(s+sl/2);ctx.textAlign='right';ctx.fillStyle='#fff';ctx.font='bold 11px "Noto Sans KR",sans-serif';ctx.fillText(lb[i],r-8,4);ctx.restore();}
+  }
+  ctx.beginPath();ctx.arc(cx,cy,16,0,Math.PI*2);ctx.fillStyle='#fff';ctx.fill();
+}
+function spin(){ang=0;(function loop(){drawRl(ang);ang+=0.07;aid=requestAnimationFrame(loop);})();}
+function stopSpin(){if(aid){cancelAnimationFrame(aid);aid=null;}}
+
+/* ── Main ── */
+async function go(){
+  if(busy)return;
+  if(!apiKey){
+    g('apiBody').style.display='block';g('apiChev').textContent='▲';
+    g('apiCard').scrollIntoView({behavior:'smooth',block:'start'});
+    toast('먼저 API 키를 입력해주세요');return;
+  }
+  if(!loc){toast('출발 위치를 입력해주세요');g('locIn').focus();return;}
+
+  busy=true;g('goBtn').disabled=true;
+  g('rsc').classList.remove('on');g('ec').classList.remove('on');g('ldc').classList.remove('on');
+  g('rlw').classList.add('on');spin();
+
+  let mi=0;
+  const mt=setInterval(()=>{mi=(mi+1)%LM.length;g('lds').textContent=LM[mi];g('ldc').classList.add('on');},2200);
+
+  const catStr=cat==='상관없음'?'제한 없음':cat;
+  const budStr=bud>0?fw(bud)+' 이하':'제한 없음';
+
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-calls':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1800,
+        system:'당신은 서울 맛집 전문 AI입니다. 웹 검색으로 실제 존재하는 식당만 추천하세요. 없는 식당을 절대 만들지 마세요.',
+        tools:[{type:'web_search_20250305',name:'web_search'}],
+        messages:[{role:'user',content:`다음 조건에 맞는 실제 식당 1곳을 네이버에서 검색해서 추천해주세요.
+
+조건:
+- 출발 위치: ${loc}
+- 음식 종류: ${catStr}
+- 도보 거리: 최대 ${dist}분 이내 (도보 약 ${Math.round(dist*80)}m)
+- 1인 예산: ${budStr}
+- 점심 영업 필수
+
+검색 방법:
+1. "${loc} 근처 ${cat==='상관없음'?'맛집 점심':cat+' 맛집 점심'}" 키워드로 네이버 검색
+2. 실제 존재하는 식당 확인 (네이버 지도, 블로그)
+3. 도보 거리·예산 조건 확인
+4. 네이버 리뷰 최신순 10개 수집
+
+반드시 아래 JSON 형식으로만 응답하세요:
+{
+  "name":"식당이름",
+  "category":"한식/중식/일식/양식/분식/고기/베트남 중 하나",
+  "address":"정확한 도로명 주소",
+  "walkMinutes":숫자,
+  "pricePerPerson":"1인 평균가격",
+  "hours":"영업시간",
+  "description":"한줄소개",
+  "tags":["태그1","태그2","태그3"],
+  "reviews":[
+    {"user":"닉네임","stars":5,"date":"2025.03","text":"리뷰 50자 내외"},
+    {"user":"닉네임","stars":4,"date":"2025.02","text":"리뷰 50자 내외"},
+    {"user":"닉네임","stars":5,"date":"2025.02","text":"리뷰 50자 내외"},
+    {"user":"닉네임","stars":3,"date":"2025.01","text":"리뷰 50자 내외"},
+    {"user":"닉네임","stars":5,"date":"2024.12","text":"리뷰 50자 내외"},
+    {"user":"닉네임","stars":4,"date":"2024.12","text":"리뷰 50자 내외"},
+    {"user":"닉네임","stars":5,"date":"2024.11","text":"리뷰 50자 내외"},
+    {"user":"닉네임","stars":4,"date":"2024.11","text":"리뷰 50자 내외"},
+    {"user":"닉네임","stars":5,"date":"2024.10","text":"리뷰 50자 내외"},
+    {"user":"닉네임","stars":3,"date":"2024.10","text":"리뷰 50자 내외"}
+  ],
+  "whyRecommend":"추천 이유 2-3문장"
+}`}]
+      })
+    });
+
+    clearInterval(mt);stopSpin();g('ldc').classList.remove('on');g('rlw').classList.remove('on');
+
+    if(!r.ok){const er=await r.json().catch(()=>({}));throw new Error(er.error?.message||`API 오류 (${r.status})`);}
+
+    const data=await r.json();
+    const txt=data.content.filter(c=>c.type==='text').map(c=>c.text).join('');
+    const jm=txt.match(/\{[\s\S]*\}/)?.[0];
+    if(!jm)throw new Error('추천 결과를 파싱할 수 없었어요. 다시 시도해주세요.');
+    showRes(JSON.parse(jm));
+
+  }catch(err){
+    clearInterval(mt);stopSpin();
+    g('ldc').classList.remove('on');g('rlw').classList.remove('on');
+    const ec=g('ec');
+    ec.innerHTML=`⚠️ ${e(err.message)}<br><br><small style="opacity:.75">API 키가 올바른지 확인하거나 잠시 후 다시 시도해주세요.<br>네트워크 연결 상태도 확인해주세요.</small>`;
+    ec.classList.add('on');
+  }finally{busy=false;g('goBtn').disabled=false;}
+}
+
+function showRes(r){
+  res=r;const c=r.category||cat;
+  g('rsic').textContent=EM[c]||'🍽';
+  g('rsnm').textContent=r.name;
+  g('rsmt').textContent=c+' · '+(r.pricePerPerson||'-');
+  g('rFrom').textContent=loc;
+  g('rDist').textContent='도보 약 '+r.walkMinutes+'분';
+  g('rPrice').textContent=r.pricePerPerson||'-';
+  g('rHours').textContent=r.hours||'-';
+  g('rAddr').textContent=r.address||'-';
+  g('tags').innerHTML=(r.tags||[]).map((t,i)=>`<span class="tag${i===0?' hl':''}">${e(t)}</span>`).join('');
+  let h='';
+  if(r.whyRecommend)h+=`<div class="wyc"><div class="wyt">🤖 AI 추천 이유</div><div class="wyb">${e(r.whyRecommend)}</div></div>`;
+  h+=(r.reviews||[]).map(rv=>`<div class="rvi"><div class="rvt"><span class="rvu">${e(rv.user)}</span><span class="rvs">${'★'.repeat(rv.stars||5)}${'☆'.repeat(5-(rv.stars||5))}</span>${rv.date?`<span class="rvd">${e(rv.date)}</span>`:''}</div><div class="rvb">${e(rv.text)}</div></div>`).join('');
+  g('rvArea').innerHTML=h;
+  g('rsc').classList.add('on');
+  g('rsc').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function openMap(){
+  if(!res)return;
+  window.open('https://map.naver.com/v5/search/'+encodeURIComponent((res.address||'')+' '+res.name),'_blank');
+}
+function shareIt(){
+  if(!res)return;
+  const t=`[오늘 점심 추천 🍱]\n${EM[res.category]||'🍽'} ${res.name}\n📍 ${res.address}\n🚶 도보 약 ${res.walkMinutes}분\n💰 ${res.pricePerPerson}\n⏰ ${res.hours}`;
+  if(navigator.share)navigator.share({title:'오늘 점심 추천',text:t}).catch(()=>{});
+  else navigator.clipboard.writeText(t).then(()=>toast('📋 복사됐어요! 카톡에 붙여넣기 하세요.')).catch(()=>toast('브라우저가 공유를 지원하지 않아요'));
+}
+
+function g(id){return document.getElementById(id);}
+function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function toast(msg){const t=g('tst');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000);}
+
+drawRl(0);updHero();
+</script>
+</body>
+</html>
